@@ -1184,7 +1184,7 @@
         <div class="toggle-view">
             <button class="toggle-btn active" id="show-products"><i class="fas fa-box-open"></i> Produk</button>
             <button class="toggle-btn" id="show-orders"><i class="fas fa-shopping-cart"></i> daftar barang (<span id="item-count">0</span>)</button>
-            <button class="toggle-btn" id="show-favorites"><i class="fas fa-bookmark"></i></button>
+            <!-- <button class="toggle-btn" id="show-favorites"><i class="fas fa-bookmark"></i></button> -->
             <button class="toggle-btn" id="show-drafts"><i class="fas fa-file-alt"></i></button>
         </div>
     </div> 
@@ -4858,7 +4858,6 @@ let totalItems = 0;
 let currentView = 'products'; // Menyimpan view saat ini
 let searchStates = { // Menyimpan state pencarian untuk setiap view
     products: { term: '', lastTerm: '' },
-    favorites: { term: '', lastTerm: '' },
     drafts: { term: '', lastTerm: '' }
 };
 
@@ -4882,13 +4881,11 @@ function loadProducts() {
 
     container.innerHTML = '';
     
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
     const units = JSON.parse(localStorage.getItem('productUnits') || '{}');
     
     products.forEach(product => {
         if (!product.id || !product.name) return;
         
-        const isFavorite = favorites[product.id] || false;
         const currentUnit = units[product.id] || 'pcs';
 
         const productCard = document.createElement('div');
@@ -4897,9 +4894,6 @@ function loadProducts() {
         productCard.dataset.name = product.name.toLowerCase();
         
         productCard.innerHTML = `
-            <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${product.id}">
-                <i class="fas ${isFavorite ? 'fas' : 'far'} fa-bookmark"></i>
-            </button>
             <div class="product-name">${product.name}</div>
             <div class="unit-control">
                 <button class="quantity-btn minus" data-id="${product.id}"><i class="fas fa-minus"></i></button>
@@ -4926,7 +4920,6 @@ function filterProducts() {
     const searchTerm = searchInput.value.toLowerCase();
     const productCards = document.querySelectorAll('.product-card');
     let visibleCount = 0;
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
     
     // Update search state untuk view saat ini
     searchStates[currentView].term = searchTerm;
@@ -4939,21 +4932,12 @@ function filterProducts() {
     
     productCards.forEach(card => {
         const productName = card.dataset.name;
-        const productId = card.dataset.id;
         
         let shouldShow = true;
         
-        // Filter berdasarkan view
-        if (currentView === 'favorites') {
-            shouldShow = favorites[productId];
-        } else if (currentView === 'drafts') {
-            // Untuk view drafts, kita tidak menampilkan produk individual
-            shouldShow = false;
-        }
-        
         // Filter berdasarkan pencarian
         if (filterTerm !== '') {
-            shouldShow = shouldShow && productName.includes(filterTerm);
+            shouldShow = productName.includes(filterTerm);
         }
         
         if (shouldShow) {
@@ -5171,14 +5155,8 @@ function performReset() {
     });
     updateOrderSummary();
     document.getElementById('confirmModal').style.display = 'none';
-    
-    // Jika di view favorites, refresh filter
-    if (currentView === 'favorites') {
-        filterProducts();
-    }
 }
 
-// Fungsi untuk menyimpan pesanan sebagai draf
 // Fungsi untuk menyimpan pesanan sebagai draf
 function saveAsDraft() {
     if (totalItems === 0) {
@@ -5247,7 +5225,6 @@ function performSaveDraft() {
 }
 
 // Fungsi untuk memuat daftar draf
-  // Fungsi untuk memuat daftar draf
 function loadDrafts() {
     const container = document.getElementById('products-container');
     if (!container) return;
@@ -5319,6 +5296,7 @@ function loadDrafts() {
         container.appendChild(draftCard);
     });
 }
+
 // Event listener untuk modal nama draf
 document.getElementById('confirmDraftName').addEventListener('click', performSaveDraft);
 document.getElementById('cancelDraftName').addEventListener('click', function() {
@@ -5401,13 +5379,11 @@ function toggleView(view) {
     const orderSummary = document.getElementById('order-summary');
     const showProductsBtn = document.getElementById('show-products');
     const showOrdersBtn = document.getElementById('show-orders');
-    const showFavoritesBtn = document.getElementById('show-favorites');
     const showDraftsBtn = document.getElementById('show-drafts');
     const searchInput = document.getElementById('search');
     
     showProductsBtn.classList.remove('active');
     showOrdersBtn.classList.remove('active');
-    showFavoritesBtn.classList.remove('active');
     showDraftsBtn.classList.remove('active');
     
     // Simpan state pencarian sebelum berpindah view
@@ -5429,35 +5405,11 @@ function toggleView(view) {
         orderSummary.style.display = 'block';
         showOrdersBtn.classList.add('active');
         updateOrderSummary();
-    } else if (view === 'favorites') {
-        productsView.style.display = 'block';
-        orderSummary.style.display = 'none';
-        showFavoritesBtn.classList.add('active');
-        loadProducts();
-        filterProducts();
     } else if (view === 'drafts') {
         productsView.style.display = 'block';
         orderSummary.style.display = 'none';
         showDraftsBtn.classList.add('active');
         loadDrafts();
-    }
-}
-
-// Fungsi untuk toggle favorit
-function toggleFavorite(productId) {
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
-    favorites[productId] = !favorites[productId];
-    localStorage.setItem('favorites', JSON.stringify(favorites));
-    
-    const favoriteBtn = document.querySelector(`.favorite-btn[data-id="${productId}"]`);
-    if (favoriteBtn) {
-        favoriteBtn.classList.toggle('active', favorites[productId]);
-        favoriteBtn.querySelector('i').className = favorites[productId] ? 'fas fa-bookmark' : 'far fa-bookmark';
-    }
-    
-    // Jika di view favorites, refresh filter
-    if (currentView === 'favorites') {
-        filterProducts();
     }
 }
 
@@ -5749,13 +5701,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Delegasi event untuk semua interaksi
     document.addEventListener('click', (e) => {
-        // Tombol favorit
-        if (e.target.closest('.favorite-btn')) {
-            const btn = e.target.closest('.favorite-btn');
-            toggleFavorite(btn.dataset.id);
-            return;
-        }
-        
         // Tombol plus/minus
         const plusBtn = e.target.closest('.plus');
         const minusBtn = e.target.closest('.minus');
@@ -5834,9 +5779,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Toggle tampilan
     document.getElementById('show-products').addEventListener('click', () => toggleView('products'));
     document.getElementById('show-orders').addEventListener('click', () => toggleView('orders'));
-    document.getElementById('show-favorites').addEventListener('click', () => {
-        toggleView('favorites');
-    });
     document.getElementById('show-drafts').addEventListener('click', () => {
         toggleView('drafts');
     });
