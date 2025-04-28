@@ -17,46 +17,7 @@
             padding: 0;
             transition: background-color 0.3s, color 0.3s;
         }
-        @media (max-width: 600px) {
-    .toggle-view {
-        gap: 14px !important;
-        top: 0px !important;
-    }
-    .copy-order-btn {
-    margin-left: 15px!important ;/* Geser ke kanan 15px */
-}
-   
-    .toggle-btn {
-        padding: 8px 12px !important;
-        font-size: 13px !important;
-    }
-    
-    #show-favorites, #show-drafts {
-        min-width: 36px !important;
-        padding: 8px !important;
-    }
-}
-/* Gaya khusus untuk modal input nama draf */
-#draftNameModal .modal-content {
-    top: -140px; /* Atur nilai negatif untuk menggeser lebih ke atas */
-    margin-top: 0; /* Pastikan margin-top 0 */
-}
-        /* Style untuk modal input nama draf */
-#draft-name-input {
-    width: 100%;
-    padding: 10px;
-    margin: 15px 0;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 16px;
-}
-
-.dark-mode #draft-name-input {
-    background-color: #333;
-    color: #e0e0e0;
-    border-color: #444;
-}
-/* ================== STYLE DRAF ================== */
+        /* ================== STYLE DRAF ================== */
 .draft-btn {
     background: none !important;
     border: none !important;
@@ -125,6 +86,22 @@
 }
 /* ================== END STYLE DRAF ================== */
 
+
+        /* Style untuk modal input nama draf */
+#draft-name-input {
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.dark-mode #draft-name-input {
+    background-color: #333;
+    color: #e0e0e0;
+    border-color: #444;
+}
         
 /* ================== STYLE DRAF ================== */
 .draft-btn {
@@ -1087,11 +1064,6 @@
             align-items: center;
             margin-bottom: 15px;
         }
-        .order-summary-header > div:last-child {
-            margin-left: auto;
-            display: flex;
-            gap: 10px;
-        }
              
         .order-summary {
                 position: fixed;
@@ -1124,7 +1096,6 @@
             border-radius: 4px;
             transition: all 0.3s;
         }
-        
 
         .dark-mode .copy-order-btn {
             color: #25D366;
@@ -1194,11 +1165,11 @@
             <div class="order-summary-title">
                 <h3><i class="fas fa-list"></i> Data Barang Habis (<span id="order-item-count">0</span> item)</h3>
             </div>
-            <button class="copy-order-btn" id="save-draft-btn" title="Simpan sebagai draf">
-                <i class="fas fa-save"></i>
-            </button>
             <button class="copy-order-btn" id="copy-order-btn" title="Salin list pesanan">
                 <i class="far fa-copy"></i>
+            </button>
+            <button class="copy-order-btn" id="save-draft-btn" title="Simpan sebagai draf">
+                <i class="fas fa-save"></i>
             </button>
         </div>
         
@@ -4847,8 +4818,6 @@ const products = [
 { id: 3487, name: "Loewix DVR 16ch 5MP Audio" },
 { id: 3488, name: "Loewix IP Camera Indoor 4MP Colorvu LX-IPF10CE30 POE Onvif" },
 { id: 3489, name: "Loewix IP Camera Outdoor 4MP LX-IPF1830IP" }
-
-
   
 ];
 
