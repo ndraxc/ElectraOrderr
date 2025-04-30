@@ -4822,8 +4822,7 @@ const products = [
 { id: 3486, name: "Loewix DVR 8ch 5MP Audio" },
 { id: 3487, name: "Loewix DVR 16ch 5MP Audio" },
 { id: 3488, name: "Loewix IP Camera Indoor 4MP Colorvu LX-IPF10CE30 POE Onvif" },
-{ id: 3489, name: "Loewix IP Camera Outdoor 4MP LX-IPF1830IP" },
-{ id: 3490, name: "Tang Krimping roftect + Cutter" }
+{ id: 3489, name: "Loewix IP Camera Outdoor 4MP LX-IPF1830IP" }
   
 ];
 
@@ -4833,7 +4832,8 @@ let totalItems = 0;
 let currentView = 'products'; // Menyimpan view saat ini
 let searchStates = { // Menyimpan state pencarian untuk setiap view
     products: { term: '', lastTerm: '' },
-    drafts: { term: '', lastTerm: '' }
+    drafts: { term: '', lastTerm: '' },
+    orders: { term: '', lastTerm: '' }
 };
 
 // Fungsi debounce untuk menunda eksekusi
@@ -4925,6 +4925,65 @@ function filterProducts() {
     
     const noResults = document.getElementById('no-results');
     noResults.classList.toggle('show', visibleCount === 0);
+    
+    const clearBtn = document.getElementById('clear-search');
+    clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
+}
+
+// Fungsi untuk mencari di daftar pesanan
+function searchInOrderItems(searchTerm) {
+    const orderItems = document.querySelectorAll('.order-item');
+    let foundItems = 0;
+    
+    // Reset semua highlight terlebih dahulu
+    orderItems.forEach(item => {
+        const nameElement = item.querySelector('.product-name-wrapper');
+        nameElement.innerHTML = nameElement.textContent; // Hapus highlight sebelumnya
+        
+        // Reset background
+        item.style.backgroundColor = '';
+        item.style.transition = 'background-color 0.5s ease';
+    });
+    
+    if (searchTerm.trim() === '') {
+        return;
+    }
+    
+    orderItems.forEach(item => {
+        const nameElement = item.querySelector('.product-name-wrapper');
+        const productName = nameElement.textContent.toLowerCase();
+        
+        if (productName.includes(searchTerm.toLowerCase())) {
+            foundItems++;
+            
+            // Highlight teks yang cocok
+            const startIdx = productName.indexOf(searchTerm.toLowerCase());
+            if (startIdx >= 0) {
+                const endIdx = startIdx + searchTerm.length;
+                const before = nameElement.textContent.substring(0, startIdx);
+                const match = nameElement.textContent.substring(startIdx, endIdx);
+                const after = nameElement.textContent.substring(endIdx);
+                
+                nameElement.innerHTML = `${before}<span style="background-color: #ffeb3b; color: #000; padding: 2px 0; border-radius: 3px;">${match}</span>${after}`;
+            }
+            
+            // Beri warna background untuk item yang ditemukan
+            item.style.backgroundColor = 'rgba(18, 140, 126, 0.1)';
+            
+            // Scroll ke item yang ditemukan (hanya yang pertama)
+            if (foundItems === 1) {
+                setTimeout(() => {
+                    item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        }
+    });
+    
+    // Update search state
+    searchStates.orders.term = searchTerm;
+    if (searchTerm !== '') {
+        searchStates.orders.lastTerm = searchTerm;
+    }
     
     const clearBtn = document.getElementById('clear-search');
     clearBtn.style.display = searchTerm.length > 0 ? 'block' : 'none';
@@ -5049,6 +5108,11 @@ function updateOrderSummary() {
             
             updateProductInputs();
             updateOrderSummary();
+            
+            // Jika ada pencarian aktif, terapkan kembali highlight
+            if (searchStates.orders.term) {
+                searchInOrderItems(searchStates.orders.term);
+            }
         });
     });
 }
@@ -5069,6 +5133,11 @@ function handleQuantityChange(productId, newValue) {
     }
     
     updateOrderSummary();
+    
+    // Jika ada pencarian aktif, terapkan kembali highlight
+    if (currentView === 'orders' && searchStates.orders.term) {
+        searchInOrderItems(searchStates.orders.term);
+    }
 }
 
 // Fungsi untuk mengirim pesanan ke WhatsApp
@@ -5130,6 +5199,14 @@ function performReset() {
     });
     updateOrderSummary();
     document.getElementById('confirmModal').style.display = 'none';
+    
+    // Reset pencarian jika ada
+    if (searchStates.orders.term) {
+        searchStates.orders.term = '';
+        searchStates.orders.lastTerm = '';
+        document.getElementById('search').value = '';
+        document.getElementById('clear-search').style.display = 'none';
+    }
 }
 
 // Fungsi untuk menyimpan pesanan sebagai draf
@@ -5380,6 +5457,11 @@ function toggleView(view) {
         orderSummary.style.display = 'block';
         showOrdersBtn.classList.add('active');
         updateOrderSummary();
+        
+        // Jika ada pencarian aktif, terapkan kembali
+        if (searchStates.orders.term) {
+            searchInOrderItems(searchStates.orders.term);
+        }
     } else if (view === 'drafts') {
         productsView.style.display = 'block';
         orderSummary.style.display = 'none';
@@ -5644,6 +5726,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentView === 'drafts') {
             searchStates.drafts.term = e.target.value;
             loadDrafts();
+        } else if (currentView === 'orders') {
+            searchInOrderItems(e.target.value);
         } else {
             filterProducts();
             showSuggestions(e.target.value);
@@ -5666,6 +5750,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (currentView === 'drafts') {
             loadDrafts();
+        } else if (currentView === 'orders') {
+            searchInOrderItems('');
         } else {
             filterProducts();
         }
