@@ -5027,13 +5027,17 @@ function generateOrderText() {
         const quantity = orders[productId];
         if (quantity > 0) {
             const product = products.find(p => p.id == productId);
-            const unit = units[productId] || 'pcs';
+            const unit = (units[productId] || 'pcs').toLowerCase();
 
-            if (unit === 'pcs') {
-                message += `${itemNumber}. ${product.name} (${quantity}) =\n\n`;
+            // Gunakan titik + zero-width space (\u200B) agar tidak diindent otomatis
+            const prefix = `${itemNumber}.\u200B`;
+
+            if (unit === 'pcs' || unit === 'roll') {
+                message += `${prefix}${product.name} ( ${quantity} ) =\n\n`;
             } else {
-                message += `${itemNumber}. ${product.name} (${quantity} ${unit}) =\n\n`;
+                message += `${prefix}${product.name} ( ${quantity} ${unit} ) =\n\n`;
             }
+
             itemNumber++;
         }
     });
