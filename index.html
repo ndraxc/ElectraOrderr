@@ -4826,6 +4826,9 @@ const products = [
   
 ];
 
+// Daftar produk
+
+
 // Variabel untuk menyimpan pesanan dan preferensi
 let orders = {};
 let totalItems = 0;
@@ -4835,6 +4838,7 @@ let searchStates = { // Menyimpan state pencarian untuk setiap view
     drafts: { term: '', lastTerm: '' },
     orders: { term: '', lastTerm: '' }
 };
+let currentDraftId = null; // Menyimpan ID draf yang sedang dibuka
 
 // Fungsi debounce untuk menunda eksekusi
 function debounce(func, delay) {
@@ -5198,6 +5202,7 @@ function resetAllOrders() {
 // Fungsi untuk melakukan reset setelah dikonfirmasi
 function performReset() {
     orders = {};
+    currentDraftId = null;
     document.querySelectorAll('.quantity-input').forEach(input => {
         input.value = 0;
     });
@@ -5220,6 +5225,12 @@ function saveAsDraft() {
         return;
     }
     
+    // Jika sedang mengedit draf yang ada, langsung simpan tanpa minta nama
+    if (currentDraftId) {
+        performSaveDraft();
+        return;
+    }
+    
     // Tampilkan modal input nama draf
     document.getElementById('draftNameModal').style.display = 'flex';
     document.getElementById('draft-name-input').focus();
@@ -5239,7 +5250,7 @@ function performSaveDraft() {
         })}`;
     }
     
-    const timestamp = new Date().getTime();
+    const timestamp = currentDraftId || new Date().getTime();
     const draft = {
         id: timestamp,
         name: draftName,
@@ -5262,8 +5273,16 @@ function performSaveDraft() {
         existingDrafts = [];
     }
     
-    // Tambahkan draf baru
-    existingDrafts.push(draft);
+    // Cek apakah draf dengan ID yang sama sudah ada
+    const existingIndex = existingDrafts.findIndex(d => d.id === currentDraftId);
+    
+    if (existingIndex >= 0) {
+        // Update draf yang sudah ada
+        existingDrafts[existingIndex] = draft;
+    } else {
+        // Tambahkan draf baru
+        existingDrafts.push(draft);
+    }
     
     // Simpan kembali ke localStorage
     localStorage.setItem('drafts', JSON.stringify(existingDrafts));
@@ -5335,10 +5354,15 @@ function loadDrafts() {
         draftCard.innerHTML = `
             <div style="width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div class="product-name">${draft.name}</div>
-                    <button class="draft-btn delete-draft" data-id="${draft.id}" title="Hapus draf">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div class="product-name" data-id="${draft.id}">${draft.name}</div>
+                    <div style="display: flex; gap: 5px;">
+                        <button class="draft-btn rename-draft" data-id="${draft.id}" title="Ganti nama draf">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="draft-btn delete-draft" data-id="${draft.id}" title="Hapus draf">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="draft-date">${draft.date}</div>
                 <div style="margin-top: 10px; display: flex; gap: 10px;">
@@ -5353,11 +5377,77 @@ function loadDrafts() {
     });
 }
 
-// Event listener untuk modal nama draf
-document.getElementById('confirmDraftName').addEventListener('click', performSaveDraft);
+// Fungsi untuk menampilkan modal ganti nama draf
+function showRenameDraftModal(draftId) {
+    let drafts = JSON.parse(localStorage.getItem('drafts') || '[]');
+    const draft = drafts.find(d => d.id == draftId);
+    
+    if (!draft) {
+        showToast('Draf tidak ditemukan');
+        return;
+    }
+    
+    const modal = document.getElementById('draftNameModal');
+    const input = document.getElementById('draft-name-input');
+    const confirmBtn = document.getElementById('confirmDraftName');
+    
+    input.value = draft.name;
+    confirmBtn.dataset.draftId = draftId;
+    
+    modal.style.display = 'flex';
+    input.focus();
+}
+
+// Fungsi untuk mengganti nama draf
+function renameDraft(draftId, newName) {
+    let drafts = JSON.parse(localStorage.getItem('drafts') || '[]');
+    const draftIndex = drafts.findIndex(d => d.id == draftId);
+    
+    if (draftIndex >= 0) {
+        drafts[draftIndex].name = newName.trim();
+        drafts[draftIndex].date = new Date().toLocaleString('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        
+        localStorage.setItem('drafts', JSON.stringify(drafts));
+        showToast('Nama draf berhasil diubah');
+        
+        // Jika sedang di view drafts, refresh tampilan
+        if (currentView === 'drafts') {
+            loadDrafts();
+        }
+    } else {
+        showToast('Gagal mengubah nama draf');
+    }
+}
+
+// Event listener untuk modal input nama draf
+document.getElementById('confirmDraftName').addEventListener('click', function() {
+    const draftNameInput = document.getElementById('draft-name-input');
+    const draftName = draftNameInput.value.trim();
+    const draftId = this.dataset.draftId;
+    
+    if (draftId) {
+        // Ini adalah operasi rename
+        renameDraft(draftId, draftName);
+    } else {
+        // Ini adalah operasi simpan baru
+        performSaveDraft();
+    }
+    
+    document.getElementById('draftNameModal').style.display = 'none';
+    draftNameInput.value = '';
+    this.removeAttribute('data-draft-id');
+});
+
 document.getElementById('cancelDraftName').addEventListener('click', function() {
     document.getElementById('draftNameModal').style.display = 'none';
     document.getElementById('draft-name-input').value = '';
+    document.getElementById('confirmDraftName').removeAttribute('data-draft-id');
 });
 
 // Tutup modal saat klik di luar
@@ -5366,13 +5456,22 @@ document.addEventListener('click', (e) => {
     if (e.target === modal) {
         modal.style.display = 'none';
         document.getElementById('draft-name-input').value = '';
+        document.getElementById('confirmDraftName').removeAttribute('data-draft-id');
     }
 });
 
 // Handle enter key pada input nama draf
 document.getElementById('draft-name-input').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        performSaveDraft();
+        const confirmBtn = document.getElementById('confirmDraftName');
+        if (confirmBtn.dataset.draftId) {
+            renameDraft(confirmBtn.dataset.draftId, this.value);
+        } else {
+            performSaveDraft();
+        }
+        document.getElementById('draftNameModal').style.display = 'none';
+        this.value = '';
+        confirmBtn.removeAttribute('data-draft-id');
     }
 });
 
@@ -5391,6 +5490,9 @@ function loadDraft(draftId) {
         showToast('Draf tidak ditemukan');
         return;
     }
+    
+    // Set current draft ID
+    currentDraftId = draftId;
     
     // Set orders dari draf
     orders = {...draft.orders};
@@ -5424,6 +5526,11 @@ function deleteDraft(draftId) {
     // Jika sedang di view drafts, refresh tampilan
     if (currentView === 'drafts') {
         loadDrafts();
+    }
+    
+    // Jika draf yang dihapus sedang dibuka, reset currentDraftId
+    if (currentDraftId == draftId) {
+        currentDraftId = null;
     }
     
     showToast('Draf berhasil dihapus');
@@ -5769,7 +5876,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Tombol plus/minus
         const plusBtn = e.target.closest('.plus');
         const minusBtn = e.target.closest('.minus');
-        
         if (plusBtn || minusBtn) {
             const button = plusBtn || minusBtn;
             const productId = button.dataset.id;
@@ -5797,6 +5903,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.delete-draft')) {
             const btn = e.target.closest('.delete-draft');
             deleteDraft(btn.dataset.id);
+            return;
+        }
+        
+        // Tombol rename draft
+        if (e.target.closest('.rename-draft')) {
+            const btn = e.target.closest('.rename-draft');
+            showRenameDraftModal(btn.dataset.id);
             return;
         }
     });
@@ -5885,6 +5998,7 @@ window.addEventListener('beforeunload', function (e) {
         e.returnValue = '';
     }
 });
+        
   </script>
 </body>
 </html>
