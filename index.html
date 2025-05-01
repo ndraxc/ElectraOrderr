@@ -4827,6 +4827,13 @@ const products = [
 ];
 
 // Daftar produk
+const products = [
+    { id: 1, name: "Sirine Mini /Mini Siren" },
+    { id: 2, name: "Conector HDMI M-F 90" },
+    { id: 3, name: "Conector HDMI M-F 180" },
+    { id: 4, name: "Conector HDMI F-F Sambungan" }
+];
+
 // Variabel untuk menyimpan pesanan dan preferensi
 let orders = {};
 let totalItems = 0;
@@ -5238,15 +5245,6 @@ function saveAsDraft() {
 function performSaveDraft() {
     const draftNameInput = document.getElementById('draft-name-input');
     let draftName = draftNameInput.value.trim();
-    
-    // Jika sedang mengedit draf yang ada, gunakan nama yang sudah ada
-    if (currentDraftId && draftName === '') {
-        let drafts = JSON.parse(localStorage.getItem('drafts') || '[]');
-        const existingDraft = drafts.find(d => d.id == currentDraftId);
-        if (existingDraft) {
-            draftName = existingDraft.name;
-        }
-    }
     
     if (draftName === '') {
         draftName = `Draf ${new Date().toLocaleString('id-ID', {
@@ -5883,7 +5881,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Tombol plus/minus
         const plusBtn = e.target.closest('.plus');
         const minusBtn = e.target.closest('.minus');
-        if (plusBtn || minusBtn) {
+                if (plusBtn || minusBtn) {
             const button = plusBtn || minusBtn;
             const productId = button.dataset.id;
             const input = button.parentElement.querySelector('input');
